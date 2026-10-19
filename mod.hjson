@@ -5,6 +5,6 @@
     "main": "displayupdate.DisplayUpdateMod",
     "description": "Raises the draw command limits of processors and logic displays. Vanilla blocks, no new content.",
     "version": "1.0",
-    "minGameVersion": "146",
+    "minGameVersion": "154",
     "java": true
 }
