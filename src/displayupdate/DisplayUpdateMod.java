@@ -1,8 +1,10 @@
 package displayupdate;
 
+import arc.*;
 import arc.func.*;
 import arc.util.*;
 import mindustry.*;
+import mindustry.game.EventType.ClientLoadEvent;
 import mindustry.mod.*;
 import mindustry.logic.*;
 import mindustry.logic.LStatements.*;
@@ -45,7 +47,9 @@ public class DisplayUpdateMod extends Mod{
     public void init(){
         //1. processor side: replace the parser for "draw"
         final Func<String[], LStatement> orig = LAssembler.customParsers.get("draw");
-        if(orig == null){
+        final boolean parserOk = orig != null;
+
+        if(!parserOk){
             Log.warn("[display-update] no parser for 'draw' found, processor limit NOT raised.");
         }else{
             LAssembler.customParsers.put("draw", arr -> {
@@ -66,12 +70,27 @@ public class DisplayUpdateMod extends Mod{
             });
         }
 
-        //2. display side: every vanilla display now creates the big-queue building
+        //2. display side: only plain LogicDisplay blocks. Tiled displays have their own
+        //building class with tiling logic, replacing it would break them.
+        int patched = 0;
+        StringBuilder skipped = new StringBuilder();
         for(Block b : Vars.content.blocks()){
             if(b instanceof LogicDisplay){
-                final LogicDisplay d = (LogicDisplay)b;
-                d.buildType = () -> new UpdateDisplayBuild(d);
+                if(b.getClass() == LogicDisplay.class){
+                    final LogicDisplay d = (LogicDisplay)b;
+                    d.buildType = () -> new UpdateDisplayBuild(d);
+                    patched++;
+                }else{
+                    skipped.append(b.name).append(' ');
+                }
             }
         }
+
+        final String msg = "Display Update: draw parser " + (parserOk ? "OK" : "NOT FOUND")
+            + ", displays patched: " + patched
+            + (skipped.length() > 0 ? ", skipped: " + skipped : "");
+        Log.info("[display-update] " + msg);
+        Events.on(ClientLoadEvent.class, e -> Vars.ui.showInfoToast(msg, 10f));
     }
 }
+ 
